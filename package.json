@@ -1,0 +1,20 @@
+{
+  "name": "aws-saml-login",
+  "version": "1.0.0",
+  "description": "Automated creation of temporary AWS credentials using UMich SSO",
+  "main": "aws-saml-login.js",
+  "dependencies": {
+    "async-prompt": "^1.0.1",
+    "aws-sdk": "^2.224.1",
+    "commander": "^2.15.1",
+    "ini": "^1.3.5",
+    "puppeteer": "^1.3.0",
+    "sax": "^1.2.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paul Arthur <paul.arthur@flowerysong.com>",
+  "license": "MIT"
+}
