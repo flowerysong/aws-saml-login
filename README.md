@@ -27,7 +27,7 @@ node aws-saml-login.js [options]
 
  *  `-p, --profile <boto profile>`
 
-    where to store the credentials
+    where to store the credentials (default: saml)
 
  *  `-r, --role <rolename>`
 

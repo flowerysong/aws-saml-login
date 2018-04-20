@@ -14,7 +14,7 @@ async function parseCLI() {
     argparse
         .version('1.0.0')
         .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
-        .option('-p, --profile <boto profile>', 'where to store the credentials')
+        .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
         .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
         .option('-u, --user <uniqname>', 'login name')
         .parse(process.argv);
@@ -154,10 +154,6 @@ async function addAWSProfile(name, creds) {
             }
         });
     });
-    let profile = 'saml';
-    if (args.profile) {
-        profile = args.profile;
-    }
-    await addAWSProfile(profile, { aws_access_key_id: creds.Credentials.AccessKeyId, aws_secret_access_key: creds.Credentials.SecretAccessKey, aws_session_token: creds.Credentials.SessionToken });
-    console.log(`Temporary credentials have been saved to the '${profile}' profile.`);
+    await addAWSProfile(args.profile, { aws_access_key_id: creds.Credentials.AccessKeyId, aws_secret_access_key: creds.Credentials.SecretAccessKey, aws_session_token: creds.Credentials.SessionToken });
+    console.log(`Temporary credentials have been saved to the '${args.profile}' profile.`);
 })();
