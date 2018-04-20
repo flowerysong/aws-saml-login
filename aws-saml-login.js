@@ -13,6 +13,7 @@ const fs = require('fs');
 async function parseCLI() {
     argparse
         .version('1.0.0')
+        .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
         .option('-p, --profile <boto profile>', 'where to store the credentials')
         .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
         .option('-u, --user <uniqname>', 'login name')
@@ -93,6 +94,10 @@ async function addAWSProfile(name, creds) {
 
 (async() => {
     const args = await parseCLI();
+    if (! /^(push|passcode)$/.test(args.duomethod)) {
+        console.log(`Unknown Duo method '${args.duomethod}', defaulting to 'push'`);
+        args.duomethod = 'push';
+    }
     if (!args.user) {
         args.user = await prompt('Uniqname: ');
     }
@@ -112,12 +117,21 @@ async function addAWSProfile(name, creds) {
     let duo = await page.$('#duo_iframe');
     duo = await duo.contentFrame();
     await duo.waitForSelector('.push-label .positive.auth-button', {visible: true});
-    await new Promise((resolve) => {
-        /* This shouldn't be necessary, but click() is being persnickety. */
-        setTimeout(resolve, 500);
-    });
-    console.log('Sending Duo push...');
-    await duo.click('.push-label .positive.auth-button');
+    if (args.duomethod == 'push') {
+        await new Promise((resolve) => {
+            /* This shouldn't be necessary, but click() is being persnickety. */
+            setTimeout(resolve, 500);
+        });
+        console.log('Sending Duo push...');
+        await duo.click('.push-label .auth-button.positive');
+    } else {
+        const passcode = await prompt('Duo passcode: ');
+        await duo.click('.passcode-label .auth-button.positive');
+        await duo.waitForSelector('.passcode-label .passcode-input', {visible: true});
+        await duo.type('.passcode-label .passcode-input', passcode);
+        await duo.click('.passcode-label .auth-button.positive');
+        console.log('Entered Duo passcode...');
+    }
 
     await page.waitForNavigation({waitUntil: 'networkidle0'});
     console.log('Parsing response...');

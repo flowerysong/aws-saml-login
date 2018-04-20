@@ -21,6 +21,10 @@ node aws-saml-login.js [options]
 
 ### Options
 
+ *  `-d, --duomethod <push|passcode>`
+
+    which Duo authentication method to use (default: push)
+
  *  `-p, --profile <boto profile>`
 
     where to store the credentials
