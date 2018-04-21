@@ -11,15 +11,15 @@ const os = require('os');
 const fs = require('fs');
 
 function parseCLI() {
-    return new Promise((resolve) => {
-        resolve(argparse
+    return Promise.resolve(
+        argparse
             .version('1.0.0')
             .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
             .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
             .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
             .option('-u, --user <uniqname>', 'login name')
-            .parse(process.argv));
-    }).then((args) => {
+            .parse(process.argv)
+    ).then((args) => {
         if (! /^(push|passcode)$/.test(args.duomethod)) {
             console.log(`Unknown Duo method '${args.duomethod}', defaulting to 'push'`);
             args.duomethod = 'push';
