@@ -54,21 +54,22 @@ node aws-saml-login.js [options]
 ### Examples
 
 ```
-$ node aws-saml-login.js -u ezekielh -r appdelivery-aws-admin -p appdelivery
+$ node aws-saml-login.js -u ezekielh -r appdelivery -p umcollab
 Password:
 Authenticating...
 Sending Duo push...
 Parsing response...
 Assuming arn:aws:iam::236262816615:role/appdelivery-aws-admin...
-Temporary credentials have been saved to the 'appdelivery' profile.
+Temporary credentials have been saved to the 'umcollab' profile.
 ```
 
 ```
-$ node aws-saml-login.js
+$ node aws-saml-login.js -d passcode
 Uniqname: ezekielh
 Password:
 Authenticating...
-Sending Duo push...
+Duo passcode: 905490
+Entered Duo passcode...
 Parsing response...
 
 [0] arn:aws:iam::023382427380:role/ITS-AWS-VDC-Email-Prod-Admin
