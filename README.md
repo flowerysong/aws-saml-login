@@ -5,11 +5,25 @@ Michigan's IdP and Amazon's SAML integration.
 
 ## Requirements
 
-* Node.js (requires at least v7.6, tested with v8.11.1 and v9.11.1)
+* Node.js
+
+  `aws-saml-login.js` requires >=v7.6
+
+  `aws-saml-login-archaic.js` should work under v6.4, which is the oldest
+  version supported by puppeteer.
+
+* Chromium dependencies
+
+  During setup puppeteer will automatically download a copy of Chromium that
+  provides a working API, but it depends on a number of system libraries that
+  aren't commonly present on servers. An example yum command line is provided
+  below.
 
 ## Setup
 
 ```
+sudo yum -y install nodejs pango libXcomposite libXcursor libXdamage libXext libXi libXtst cups-libs libXScrnSaver libXrandr GConf2 alsa-lib atk gtk3 ipa-gothic-fonts xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi xorg-x11-utils xorg-x11-fonts-cyrillic xorg-x11-fonts-Type1 xorg-x11-fonts-misc
+
 npm install
 ```
 
