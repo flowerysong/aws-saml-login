@@ -102,12 +102,14 @@ function chooseRole(roles, arg) {
             });
             if (role) {
                 resolve(role);
+                return;
             }
             console.log(`Unable to match ${arg} against an available role.`);
         }
 
         if (roles.length == 1) {
             resolve(roles[0]);
+            return;
         }
 
         const role_chooser = roles.map((r, index) => {
