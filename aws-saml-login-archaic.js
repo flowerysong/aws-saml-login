@@ -117,7 +117,12 @@ function chooseRole(roles, arg) {
         });
         console.log('\n' + role_chooser.join('\n') + '\n');
 
-        resolve(null);
+        resolve(new Promise((resolve) => {
+            prompt.get([{name: 'index', description: 'Desired role'}], (err, result) => {
+                resolve(result.index);
+            });
+        })
+        .then((index) => roles[index]));
     });
 }
 
@@ -178,20 +183,7 @@ function addAWSProfile(name, creds) {
                         .then((elem) => elem.getProperty('value'))
                         .then((val) => val.jsonValue())
                         .then((jsonval) => parseSAMLResponse(jsonval))
-                        .then((roles) => {
-                            return chooseRole(roles, args.role)
-                                .then((role) => {
-                                    if (!role) {
-                                        return new Promise((resolve) => {
-                                            prompt.get([{name: 'index', description: 'Desired role'}], (err, result) => {
-                                                resolve(result.index);
-                                            });
-                                        })
-                                        .then((index) => roles[index]);
-                                    }
-                                    return role;
-                                })
-                        })
+                        .then((roles) => chooseRole(roles, args.role))
                         .then((role) => {
                             console.log(`Assuming ${role.arn}...`);
                             return assumeRole(role);
