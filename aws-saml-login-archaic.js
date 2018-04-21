@@ -163,9 +163,7 @@ function addAWSProfile(name, creds) {
                     console.log('Authenticating...');
                     return page.type('#login', args.user);
                 })
-                .then(() => {
-                    return page.type('#password', args.pass);
-                })
+                .then(() => page.type('#password', args.pass))
                 .then(() => page.click('#loginSubmit'))
                 .then(() => page.waitForSelector('#duo_iframe'))
                 .then(() => page.$('#duo_iframe'))
