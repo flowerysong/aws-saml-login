@@ -36,6 +36,11 @@ function parseSAMLResponse(response) {
             reject(err);
         }
         parser.onend = () => {
+            roles.sort((a, b) => {
+                if (a.arn > b.arn) { return 1; }
+                if (a.arn < b.arn) { return -1; }
+                return 0;
+            });
             resolve(roles);
         }
         parser.write(decoder.toString()).close();
@@ -57,11 +62,6 @@ async function chooseRole(roles, arg) {
         return(roles[0]);
     }
 
-    roles.sort((a, b) => {
-        if (a.arn > b.arn) { return 1; }
-        if (a.arn < b.arn) { return -1; }
-        return 0;
-    });
     const role_chooser = roles.map((r, index) => {
         return `[${index}] ${r.arn}`;
     });
