@@ -133,7 +133,10 @@ async function addAWSProfile(name, creds) {
         console.log('Entered Duo passcode...');
     }
 
-    await page.waitForNavigation({waitUntil: 'networkidle0'});
+    /* A Duo push is valid for about 60 seconds after it's sent; bump
+     * this timeout from 30 to 70 seconds.
+     */
+    await page.waitForNavigation({waitUntil: 'networkidle0', timeout: 70000});
     console.log('Parsing response...');
     let saml = await page.$('[name=SAMLResponse]');
     saml = await saml.getProperty('value');

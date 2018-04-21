@@ -169,7 +169,7 @@ function addAWSProfile(name, creds) {
                 .then(() => page.$('#duo_iframe'))
                 .then((duoelem) => duoelem.contentFrame())
                 .then((duo) => handleDuo(duo, args.duomethod))
-                .then(() => page.waitForNavigation({waitUntil: 'networkidle0'}))
+                .then(() => page.waitForNavigation({waitUntil: 'networkidle0', timeout: 70000}))
                 .then(() => {
                     console.log('Parsing response...');
                     return page.waitForSelector('[name=SAMLResponse]')
