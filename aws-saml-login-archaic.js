@@ -152,18 +152,23 @@ function addAWSProfile(name, creds) {
         data = ini.parse(raw);
     }
 
-    data[name] = creds;
+    data[name] = {
+        aws_access_key_id: creds.Credentials.AccessKeyId,
+        aws_secret_access_key: creds.Credentials.SecretAccessKey,
+        aws_session_token: creds.Credentials.SessionToken,
+    };
 
-    return(fs.writeFileSync(credpath, ini.encode(data, {whitespace: true}), {encoding: 'utf8', mode: 0o640}));
+    const ret = fs.writeFileSync(credpath, ini.encode(data, {whitespace: true}), {encoding: 'utf8', mode: 0o640});
+    console.log(`Temporary credentials have been saved to the '${name}' profile.`)
+    return ret;
 }
 
 (() => {
     launch = puppeteer.launch();
     parseCLI().then((args) =>
-    launch.then((browser) => {
-        return browser.newPage()
-            .then((page) => {
-                return page.goto('https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
+        launch.then((browser) =>
+            browser.newPage().then((page) =>
+                page.goto('https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
                 .then(() => page.waitForSelector('#login', {visible: true}))
                 .then(() => {
                     console.log('Authenticating...');
@@ -183,18 +188,17 @@ function addAWSProfile(name, creds) {
                         .then((elem) => elem.getProperty('value'))
                         .then((val) => val.jsonValue())
                         .then((jsonval) => parseSAMLResponse(jsonval))
-                        .then((roles) => chooseRole(roles, args.role))
+                        .then((roles) => {
+                            browser.close();
+                            return chooseRole(roles, args.role);
+                        })
                         .then((role) => {
                             console.log(`Assuming ${role.arn}...`);
                             return assumeRole(role);
                         })
-                        .then((creds) => {
-                            addAWSProfile(args.profile, { aws_access_key_id: creds.Credentials.AccessKeyId, aws_secret_access_key: creds.Credentials.SecretAccessKey, aws_session_token: creds.Credentials.SessionToken });
-                            console.log(`Temporary credentials have been saved to the '${args.profile}' profile.`);
-                            return browser.close();
-                        });
-                });
-            })
-    })
+                        .then((creds) => addAWSProfile(args.profile, creds));
+                })
+            )
+        )
     );
 })();
