@@ -12,7 +12,7 @@ const fs = require('fs');
 
 async function parseCLI() {
     argparse
-        .version('1.0.0')
+        .version('1.1.0')
         .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
         .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
         .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')

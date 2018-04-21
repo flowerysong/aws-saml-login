@@ -1,6 +1,6 @@
 {
   "name": "aws-saml-login",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automated creation of temporary AWS credentials using UMich SSO",
   "main": "aws-saml-login.js",
   "dependencies": {
