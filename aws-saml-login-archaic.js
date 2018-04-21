@@ -153,8 +153,9 @@ function addAWSProfile(name, creds) {
 }
 
 (() => {
+    launch = puppeteer.launch();
     parseCLI().then((args) =>
-    puppeteer.launch().then((browser) => {
+    launch.then((browser) => {
         return browser.newPage()
             .then((page) => {
                 return page.goto('https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
