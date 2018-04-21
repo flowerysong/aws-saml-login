@@ -93,6 +93,7 @@ async function addAWSProfile(name, creds) {
 }
 
 (async() => {
+    const launch = puppeteer.launch();
     const args = await parseCLI();
     if (! /^(push|passcode)$/.test(args.duomethod)) {
         console.log(`Unknown Duo method '${args.duomethod}', defaulting to 'push'`);
@@ -101,13 +102,14 @@ async function addAWSProfile(name, creds) {
     if (!args.user) {
         args.user = await prompt('Uniqname: ');
     }
-    const pass = await prompt.password('Password: ', '');
+    let pass = prompt.password('Password: ', '');
 
-    const browser = await puppeteer.launch();
+    const browser = await launch;
     const page = await browser.newPage();
 
     await page.goto('https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices');
     await page.waitForSelector('#login', {visible: true});
+    pass = await pass;
     console.log('Authenticating...');
     await page.type('#login', args.user);
     await page.type('#password', pass);
@@ -125,9 +127,10 @@ async function addAWSProfile(name, creds) {
         console.log('Sending Duo push...');
         await duo.click('.push-label .auth-button.positive');
     } else {
-        const passcode = await prompt('Duo passcode: ');
+        let passcode = prompt('Duo passcode: ');
         await duo.click('.passcode-label .auth-button.positive');
         await duo.waitForSelector('.passcode-label .passcode-input', {visible: true});
+        passcode = await passcode;
         await duo.type('.passcode-label .passcode-input', passcode);
         await duo.click('.passcode-label .auth-button.positive');
         console.log('Entered Duo passcode...');
@@ -141,7 +144,7 @@ async function addAWSProfile(name, creds) {
     let saml = await page.$('[name=SAMLResponse]');
     saml = await saml.getProperty('value');
     saml = await saml.jsonValue();
-    await browser.close();
+    browser.close();
 
     const roles = await parseSAMLResponse(saml);
     const role = await chooseRole(roles, args.role);
