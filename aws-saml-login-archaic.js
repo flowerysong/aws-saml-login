@@ -1,8 +1,5 @@
-const argparse = require('commander');
 const puppeteer = require('puppeteer');
 const prompt = require('prompt');
-const sax = require('sax');
-const aws = require('aws-sdk');
 const ini = require('ini');
 
 const util = require('util');
@@ -10,15 +7,10 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
+const common = require('./aws-saml-common.js');
+
 function parseCLI() {
-    return Promise.resolve(
-        argparse
-            .version('1.1.0')
-            .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
-            .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
-            .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
-            .option('-u, --user <uniqname>', 'login name')
-            .parse(process.argv)
+    return common.parseCLI(
     ).then((args) => {
         if (! /^(push|passcode)$/.test(args.duomethod)) {
             console.log(`Unknown Duo method '${args.duomethod}', defaulting to 'push'`);
@@ -34,32 +26,6 @@ function parseCLI() {
                 resolve(args);
             });
         });
-    });
-}
-
-function parseSAMLResponse(response) {
-    return new Promise((resolve, reject) => {
-        let roles = [];
-        const decoder = new Buffer(response, 'base64');
-        const parser = sax.parser();
-        parser.ontext = (text) => {
-            if (/^arn:aws:iam::.*/.test(text)) {
-                const [ arn, principal ] = text.split(',');
-                roles.push({ arn, principal, response });
-            }
-        };
-        parser.onerror = (err) => {
-            reject(err);
-        }
-        parser.onend = () => {
-            roles.sort((a, b) => {
-                if (a.arn > b.arn) { return 1; }
-                if (a.arn < b.arn) { return -1; }
-                return 0;
-            });
-            resolve(roles);
-        }
-        parser.write(decoder.toString()).close();
     });
 }
 
@@ -126,19 +92,6 @@ function chooseRole(roles, arg) {
     });
 }
 
-function assumeRole(role) {
-    return new Promise((resolve, reject) => {
-        const sts = new aws.STS();
-        sts.assumeRoleWithSAML({RoleArn: role.arn, PrincipalArn: role.principal, SAMLAssertion: role.response}, (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    });
-}
-
 function addAWSProfile(name, creds) {
     const creddir = path.join(os.homedir(), '.aws');
     if (!fs.existsSync(creddir)) {
@@ -168,7 +121,7 @@ function addAWSProfile(name, creds) {
     parseCLI().then((args) =>
         launch.then((browser) =>
             browser.newPage().then((page) =>
-                page.goto('https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
+                page.goto(common.baseURL)
                 .then(() => page.waitForSelector('#login', {visible: true}))
                 .then(() => {
                     console.log('Authenticating...');
@@ -187,15 +140,15 @@ function addAWSProfile(name, creds) {
                         .then(() => page.$('[name=SAMLResponse]'))
                         .then((elem) => elem.getProperty('value'))
                         .then((val) => val.jsonValue())
-                        .then((jsonval) => parseSAMLResponse(jsonval))
-                        .then((roles) => {
-                            browser.close();
-                            return chooseRole(roles, args.role);
-                        })
-                        .then((role) => {
-                            console.log(`Assuming ${role.arn}...`);
-                            return assumeRole(role);
-                        })
+                        .then((saml) => common.parseSAMLResponse(saml)
+                                .then((roles) => {
+                                    browser.close();
+                                    return chooseRole(roles, args.role);
+                                })
+                                .then((role) => {
+                                    console.log(`Assuming ${role.arn}...`);
+                                    return common.assumeRole(role, saml);
+                                }))
                         .then((creds) => addAWSProfile(args.profile, creds));
                 })
             )

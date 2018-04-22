@@ -1,8 +1,5 @@
-const argparse = require('commander');
 const puppeteer = require('puppeteer');
 const prompt = require('async-prompt');
-const sax = require('sax');
-const aws = require('aws-sdk');
 const ini = require('ini');
 
 const util = require('util');
@@ -10,42 +7,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-async function parseCLI() {
-    argparse
-        .version('1.1.0')
-        .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
-        .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
-        .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
-        .option('-u, --user <uniqname>', 'login name')
-        .parse(process.argv);
-    return(argparse);
-}
-
-function parseSAMLResponse(response) {
-    return new Promise((resolve, reject) => {
-        let roles = [];
-        const decoder = new Buffer(response, 'base64');
-        const parser = sax.parser();
-        parser.ontext = (text) => {
-            if (/^arn:aws:iam::.*/.test(text)) {
-                const [ arn, principal ] = text.split(',');
-                roles.push({ arn, principal });
-            }
-        };
-        parser.onerror = (err) => {
-            reject(err);
-        }
-        parser.onend = () => {
-            roles.sort((a, b) => {
-                if (a.arn > b.arn) { return 1; }
-                if (a.arn < b.arn) { return -1; }
-                return 0;
-            });
-            resolve(roles);
-        }
-        parser.write(decoder.toString()).close();
-    });
-}
+const common = require('./aws-saml-common.js');
 
 async function chooseRole(roles, arg) {
     if (arg) {
@@ -86,7 +48,11 @@ async function addAWSProfile(name, creds) {
         data = ini.parse(raw);
     }
 
-    data[name] = creds;
+    data[name] = {
+        aws_access_key_id: creds.Credentials.AccessKeyId,
+        aws_secret_access_key: creds.Credentials.SecretAccessKey,
+        aws_session_token: creds.Credentials.SessionToken,
+    };
 
     const writeFile = util.promisify(fs.writeFile);
     return writeFile(credpath, ini.encode(data, {whitespace: true}), {encoding: 'utf8', mode: 0o640});
@@ -94,7 +60,7 @@ async function addAWSProfile(name, creds) {
 
 (async() => {
     const launch = puppeteer.launch();
-    const args = await parseCLI();
+    const args = await common.parseCLI();
     if (! /^(push|passcode)$/.test(args.duomethod)) {
         console.log(`Unknown Duo method '${args.duomethod}', defaulting to 'push'`);
         args.duomethod = 'push';
@@ -107,7 +73,7 @@ async function addAWSProfile(name, creds) {
     const browser = await launch;
     const page = await browser.newPage();
 
-    await page.goto('https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices');
+    await page.goto(common.baseURL);
     await page.waitForSelector('#login', {visible: true});
     pass = await pass;
     console.log('Authenticating...');
@@ -146,20 +112,10 @@ async function addAWSProfile(name, creds) {
     saml = await saml.jsonValue();
     browser.close();
 
-    const roles = await parseSAMLResponse(saml);
+    const roles = await common.parseSAMLResponse(saml);
     const role = await chooseRole(roles, args.role);
     console.log(`Assuming ${role.arn}...`);
-
-    const creds = await new Promise((resolve, reject) => {
-        const sts = new aws.STS();
-        sts.assumeRoleWithSAML({RoleArn: role.arn, PrincipalArn: role.principal, SAMLAssertion: saml}, (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    });
-    await addAWSProfile(args.profile, { aws_access_key_id: creds.Credentials.AccessKeyId, aws_secret_access_key: creds.Credentials.SecretAccessKey, aws_session_token: creds.Credentials.SessionToken });
+    const creds = await common.assumeRole(role, saml);
+    await addAWSProfile(args.profile, creds);
     console.log(`Temporary credentials have been saved to the '${args.profile}' profile.`);
 })();
