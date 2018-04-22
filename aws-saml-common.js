@@ -4,6 +4,7 @@ exports.parseCLI = () => {
             .version('1.1.0')
             .option('-b, --baseurl <URL>', 'base IdP URL', 'https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
             .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
+            .option('-D, --duration <seconds>', 'session duration', (input) => parseInt(input), 14400)
             .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
             .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
             .option('-u, --user <uniqname>', 'login name')
@@ -48,7 +49,7 @@ exports.parseSAMLResponse = (response) => {
     });
 }
 
-exports.assumeRole = (role, saml) => {
+exports.assumeRole = (role, saml, duration) => {
     return new Promise((resolve, reject) => {
         const aws = require('aws-sdk');
         const sts = new aws.STS();
@@ -57,6 +58,7 @@ exports.assumeRole = (role, saml) => {
                 RoleArn: role.arn,
                 PrincipalArn: role.principal,
                 SAMLAssertion: saml,
+                DurationSeconds: duration,
             }, (err, data) => {
             if (err) {
                 reject(err);

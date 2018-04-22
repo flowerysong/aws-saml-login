@@ -119,7 +119,7 @@ async function addAWSProfile(name, creds) {
     const roles = await common.parseSAMLResponse(saml);
     const role = await chooseRole(roles, args.role);
     console.log(`Assuming ${role.arn}...`);
-    const creds = await common.assumeRole(role, saml);
+    const creds = await common.assumeRole(role, saml, args.duration);
     await addAWSProfile(args.profile, creds);
     console.log(`Temporary credentials have been saved to the '${args.profile}' profile.`);
 })();

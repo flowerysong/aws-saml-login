@@ -151,7 +151,7 @@ function addAWSProfile(name, creds) {
                                 })
                                 .then((role) => {
                                     console.log(`Assuming ${role.arn}...`);
-                                    return common.assumeRole(role, saml);
+                                    return common.assumeRole(role, saml, args.duration);
                                 }))
                         .then((creds) => addAWSProfile(args.profile, creds));
                 })

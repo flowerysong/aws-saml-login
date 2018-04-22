@@ -43,6 +43,10 @@ node aws-saml-login.js [options]
 
     which Duo authentication method to use (default: push)
 
+ *  `-D, --duration <seconds>`
+
+    session duration (default: 14400)
+
  *  `-p, --profile <boto profile>`
 
     where to store the credentials (default: saml)
