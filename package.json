@@ -1,7 +1,11 @@
 {
   "name": "aws-saml-login",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Automated creation of temporary AWS credentials using UMich SSO",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowerysong/aws-saml-login.git"
+  },
   "main": "aws-saml-login.js",
   "dependencies": {
     "async-prompt": "^1.0.1",

@@ -1,3 +1,11 @@
+# v1.1.1 (2018-04-22)
+
+* Made session duration configurable, set the default to four hours
+
+* Made base URL configurable and added the possibility of supporting other IdPs.
+
+* Fixed some sporadic failures on laggy networks.
+
 # v1.1.0 (2018-04-21)
 
 * Added `aws-saml-login-archaic.js`, which supports Node.js versions

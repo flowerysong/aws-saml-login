@@ -1,7 +1,7 @@
 exports.parseCLI = () => {
     return Promise.resolve(
         require('commander')
-            .version('1.1.0')
+            .version('1.1.1')
             .option('-b, --baseurl <URL>', 'base IdP URL', 'https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
             .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
             .option('-D, --duration <seconds>', 'session duration', (input) => parseInt(input), 14400)
