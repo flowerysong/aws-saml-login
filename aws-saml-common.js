@@ -1,9 +1,8 @@
-exports.baseURL = 'https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices';
-
 exports.parseCLI = () => {
     return Promise.resolve(
         require('commander')
             .version('1.1.0')
+            .option('-b, --baseurl <URL>', 'base IdP URL', 'https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
             .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
             .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
             .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
@@ -20,8 +19,18 @@ exports.parseSAMLResponse = (response) => {
         const parser = sax.parser();
         parser.ontext = (text) => {
             if (/^arn:aws:iam::.*/.test(text)) {
-                const [ arn, principal ] = text.split(',');
-                roles.push({ arn, principal });
+                /* Amazon's generic SAML setup guide says to return this
+                 * attribute as RoleARN,PrincipalARN. Amazon's blog post on
+                 * configuring Shibboleth says to return it as
+                 * PrincipalARN,RoleARN. Automatically figure out which way it
+                 * was done.
+                 */
+                const [ arn1, arn2 ] = text.split(',');
+                if (/^arn:aws:iam::[0-9]*:role\//.test(arn1)) {
+                    roles.push({ arn: arn1, principal: arn2 });
+                } else {
+                    roles.push({ arn: arn2, principal: arn1 });
+                }
             }
         };
         parser.onerror = (err) => {

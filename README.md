@@ -35,6 +35,10 @@ node aws-saml-login.js [options]
 
 ### Options
 
+ *  `-b, --baseurl <URL>`
+
+    base IdP URL (default: https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices)
+
  *  `-d, --duomethod <push|passcode>`
 
     which Duo authentication method to use (default: push)

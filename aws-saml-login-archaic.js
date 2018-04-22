@@ -121,14 +121,18 @@ function addAWSProfile(name, creds) {
     parseCLI().then((args) =>
         launch.then((browser) =>
             browser.newPage().then((page) =>
-                page.goto(common.baseURL)
-                .then(() => page.waitForSelector('#login', {visible: true}))
-                .then(() => {
+                page.goto(args.baseurl)
+                .then(() => Promise.race([
+                    page.waitForSelector('#login', {visible: true}),
+                    page.waitForSelector('#netid', {visible: true}),
+                ]))
+                .then((userElem) => {
                     console.log('Authenticating...');
-                    return page.type('#login', args.user);
+                    return userElem.type(args.user);
                 })
-                .then(() => page.type('#password', args.pass))
-                .then(() => page.click('#loginSubmit'))
+                .then(() => page.waitForSelector('#password', {visible: true}))
+                .then((passElem) => passElem.type(args.pass)
+                        .then(() => passElem.press('Enter')))
                 .then(() => page.waitForSelector('#duo_iframe'))
                 .then(() => page.$('#duo_iframe'))
                 .then((duoelem) => duoelem.contentFrame())

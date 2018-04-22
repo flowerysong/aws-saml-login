@@ -73,13 +73,17 @@ async function addAWSProfile(name, creds) {
     const browser = await launch;
     const page = await browser.newPage();
 
-    await page.goto(common.baseURL);
-    await page.waitForSelector('#login', {visible: true});
+    await page.goto(args.baseurl);
+    const userElem = await Promise.race([
+        page.waitForSelector('#login', {visible: true}),
+        page.waitForSelector('#netid', {visible: true}),
+    ]);
     pass = await pass;
     console.log('Authenticating...');
-    await page.type('#login', args.user);
-    await page.type('#password', pass);
-    await page.click('#loginSubmit');
+    await userElem.type(args.user);
+    const passElem = await page.waitForSelector('#password', {visible: true});
+    await passElem.type(pass);
+    await passElem.press('Enter');
 
     await page.waitForSelector('#duo_iframe');
     let duo = await page.$('#duo_iframe');
