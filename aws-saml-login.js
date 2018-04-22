@@ -9,6 +9,25 @@ const fs = require('fs');
 
 const common = require('./aws-saml-common.js');
 
+async function retryClick(container, selector) {
+    /* Retry every quarter second for three seconds. */
+    const retries = 12;
+    for (let i = 0; i <= retries; i++) {
+        try {
+            await container.click(selector);
+            break;
+        }
+        catch (err) {
+            if ( i == retries ) {
+                throw new Error(`Clicking the button failed after ${i} tries.`);
+            }
+            await new Promise((resolve) => {
+                setTimeout(resolve, 250);
+            });
+        }
+    }
+}
+
 async function chooseRole(roles, arg) {
     if (arg) {
         const role = roles.find((elem) => {
@@ -85,24 +104,22 @@ async function addAWSProfile(name, creds) {
     await passElem.type(pass);
     await passElem.press('Enter');
 
-    await page.waitForSelector('#duo_iframe');
-    let duo = await page.$('#duo_iframe');
+    let duo = await page.waitForSelector('#duo_iframe', {timeout: 60000});
     duo = await duo.contentFrame();
     await duo.waitForSelector('.push-label .positive.auth-button', {visible: true});
     if (args.duomethod == 'push') {
-        await new Promise((resolve) => {
-            /* This shouldn't be necessary, but click() is being persnickety. */
-            setTimeout(resolve, 500);
-        });
         console.log('Sending Duo push...');
-        await duo.click('.push-label .auth-button.positive');
+        /* Use retryClick() because click() fails if we try too soon, probably
+         * due to duo() doing something tricky.
+         */
+        await retryClick(duo, '.push-label .auth-button.positive');
     } else {
         let passcode = prompt('Duo passcode: ');
-        await duo.click('.passcode-label .auth-button.positive');
+        await retryClick(duo, '.passcode-label .auth-button.positive');
         await duo.waitForSelector('.passcode-label .passcode-input', {visible: true});
         passcode = await passcode;
         await duo.type('.passcode-label .passcode-input', passcode);
-        await duo.click('.passcode-label .auth-button.positive');
+        await retryClick(duo, '.passcode-label .auth-button.positive');
         console.log('Entered Duo passcode...');
     }
 
@@ -111,7 +128,7 @@ async function addAWSProfile(name, creds) {
      */
     await page.waitForNavigation({waitUntil: 'networkidle0', timeout: 70000});
     console.log('Parsing response...');
-    let saml = await page.$('[name=SAMLResponse]');
+    let saml = await page.waitForSelector('[name=SAMLResponse]');
     saml = await saml.getProperty('value');
     saml = await saml.jsonValue();
     browser.close();

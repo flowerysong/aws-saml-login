@@ -32,17 +32,14 @@ function parseCLI() {
 function handleDuo(duo, duomethod) {
     return duo
         .waitForSelector('.push-label .positive.auth-button', {visible: true})
+        /* click() fails if we try too soon, probably due to Duo doing
+         * something tricky.
+         */
+        .then(() => new Promise((resolve) => setTimeout(resolve, 2000)))
         .then(() => {
             if (duomethod == 'push') {
-                return new Promise((resolve) => {
-                    /* This shouldn't be necessary, but click() is
-                    * being persnickety. */
-                    setTimeout(resolve, 500);
-                })
-                .then(() => {
-                    console.log('Sending Duo push...');
-                    return duo.click('.push-label .auth-button.positive');
-                });
+                console.log('Sending Duo push...');
+                return duo.click('.push-label .auth-button.positive');
             } else {
                 return duo.click('.passcode-label .auth-button.positive')
                     .then(() => duo.waitForSelector('.passcode-label .passcode-input', {visible: true}))
@@ -133,15 +130,13 @@ function addAWSProfile(name, creds) {
                 .then(() => page.waitForSelector('#password', {visible: true}))
                 .then((passElem) => passElem.type(args.pass)
                         .then(() => passElem.press('Enter')))
-                .then(() => page.waitForSelector('#duo_iframe'))
-                .then(() => page.$('#duo_iframe'))
+                .then(() => page.waitForSelector('#duo_iframe', {timeout: 60000}))
                 .then((duoelem) => duoelem.contentFrame())
                 .then((duo) => handleDuo(duo, args.duomethod))
                 .then(() => page.waitForNavigation({waitUntil: 'networkidle0', timeout: 70000}))
                 .then(() => {
                     console.log('Parsing response...');
                     return page.waitForSelector('[name=SAMLResponse]')
-                        .then(() => page.$('[name=SAMLResponse]'))
                         .then((elem) => elem.getProperty('value'))
                         .then((val) => val.jsonValue())
                         .then((saml) => common.parseSAMLResponse(saml)
