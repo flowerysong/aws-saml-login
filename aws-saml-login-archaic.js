@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const prompt = require('prompt');
+const prompt = require('async-prompt');
 const ini = require('ini');
 
 const util = require('util');
@@ -8,26 +8,6 @@ const os = require('os');
 const fs = require('fs');
 
 const common = require('./aws-saml-common.js');
-
-function parseCLI() {
-    return common.parseCLI(
-    ).then((args) => {
-        if (! /^(push|passcode)$/.test(args.duomethod)) {
-            console.log(`Unknown Duo method '${args.duomethod}', defaulting to 'push'`);
-            args.duomethod = 'push';
-        }
-
-        return new Promise((resolve) => {
-            prompt.colors = false;
-            prompt.message = '';
-            prompt.override = args;
-            prompt.start();
-            prompt.addProperties(args, [{name: 'user', description: 'Uniqname'}, {name: 'pass', description: 'Password', hidden: true}], (err) => {
-                resolve(args);
-            });
-        });
-    });
-}
 
 function handleDuo(duo, duomethod) {
     return duo
@@ -43,11 +23,7 @@ function handleDuo(duo, duomethod) {
             } else {
                 return duo.click('.passcode-label .auth-button.positive')
                     .then(() => duo.waitForSelector('.passcode-label .passcode-input', {visible: true}))
-                    .then(() => new Promise((resolve) => {
-                        prompt.get([{name: 'passcode', description: 'Duo passcode'}], (err, result) => {
-                            resolve(result.passcode);
-                        })
-                    }))
+                    .then(() => prompt('Passcode: '))
                     .then((passcode) => duo.type('.passcode-label .passcode-input', passcode))
                     .then(() => {
                         console.log('Entered Duo passcode...');
@@ -80,12 +56,8 @@ function chooseRole(roles, arg) {
         });
         console.log('\n' + role_chooser.join('\n') + '\n');
 
-        resolve(new Promise((resolve) => {
-            prompt.get([{name: 'index', description: 'Desired role'}], (err, result) => {
-                resolve(result.index);
-            });
-        })
-        .then((index) => roles[index]));
+        resolve(prompt('Desired role: ')
+            .then((index) => roles[index]));
     });
 }
 
@@ -115,7 +87,7 @@ function addAWSProfile(name, creds) {
 
 (() => {
     launch = puppeteer.launch();
-    parseCLI().then((args) =>
+    common.parseCLI().then((args) =>
         launch.then((browser) =>
             browser.newPage().then((page) =>
                 page.goto(args.baseurl)
@@ -123,13 +95,30 @@ function addAWSProfile(name, creds) {
                     page.waitForSelector('#login', {visible: true}),
                     page.waitForSelector('#netid', {visible: true}),
                 ]))
-                .then((userElem) => {
-                    console.log('Authenticating...');
-                    return userElem.type(args.user);
-                })
+                .then((userElem) => new Promise((resolve) => {
+                        if (args.user) {
+                            resolve(args.user);
+                            return;
+                        }
+                        resolve(prompt('Uniqname: '));
+                    })
+                    .then((user) => userElem.type(user))
+                )
                 .then(() => page.waitForSelector('#password', {visible: true}))
-                .then((passElem) => passElem.type(args.pass)
-                        .then(() => passElem.press('Enter')))
+                .then((passElem) => {
+                    new Promise((resolve) => {
+                        if (args.pass) {
+                            resolve(args.pass);
+                            return;
+                        }
+                        resolve(prompt.password('Password: ', ''));
+                    })
+                    .then((pass) => {
+                        console.log('Authenticating...');
+                        return passElem.type(pass);
+                    })
+                    .then(() => passElem.press('Enter'))
+                })
                 .then(() => page.waitForSelector('#duo_iframe', {timeout: 60000}))
                 .then((duoelem) => duoelem.contentFrame())
                 .then((duo) => handleDuo(duo, args.duomethod))
