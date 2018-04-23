@@ -5,12 +5,12 @@ Michigan's IdP and Amazon's SAML integration.
 
 ## Requirements
 
-* Node.js
+* [Node.js](https://nodejs.org/)
 
   `aws-saml-login.js` requires >=v7.6
 
   `aws-saml-login-archaic.js` should work under v6.4, which is the oldest
-  version supported by puppeteer.
+  version supported by [puppeteer](https://github.com/GoogleChrome/puppeteer).
 
 * Chromium dependencies
 
