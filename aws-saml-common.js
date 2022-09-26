@@ -4,7 +4,7 @@ exports.parseCLI = () => {
             .version('1.1.1')
             .option('-b, --baseurl <URL>', 'base IdP URL', 'https://shibboleth.umich.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=urn:amazon:webservices')
             .option('-d, --duomethod <method>', 'set Duo authentication method', 'push')
-            .option('-D, --duration <seconds>', 'session duration', (input) => parseInt(input), 14400)
+            .option('-D, --duration <seconds>', 'session duration', (input) => parseInt(input), 3600)
             .option('-p, --profile <boto profile>', 'where to store the credentials', 'saml')
             .option('-r, --role <rolename>', 'automatically select the first role that matches this pattern')
             .option('-u, --user <uniqname>', 'login name')

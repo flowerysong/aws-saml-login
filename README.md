@@ -45,7 +45,7 @@ node aws-saml-login.js [options]
 
  *  `-D, --duration <seconds>`
 
-    session duration (default: 14400)
+    session duration (default: 3600)
 
  *  `-p, --profile <boto profile>`
 
